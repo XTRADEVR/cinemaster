@@ -28,17 +28,26 @@
     </div>
   </header>
 
+  <!-- Hidden File Input for Video Upload -->
+  <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+
   <!-- Main Workspace -->
   <main>
-    <!-- Preview Canvas -->
+    <!-- Preview Canvas with Real Video Element -->
     <div class="preview-container">
-      <div style="font-size: 48px;">🎞️</div>
-      <div class="preview-text">Preview Player • 4K 60FPS Studio</div>
+      <video id="previewVideo" playsinline style="width: 100%; height: 100%; object-fit: contain; background: #000; display: none;"></video>
+      <div id="placeholder-preview" style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: absolute;">
+        <div style="font-size: 48px;">🎞️</div>
+        <div class="preview-text">Preview Player • Belum ada footage</div>
+      </div>
       <div class="player-controls">
         <button id="play-btn" class="secondary">▶️ Play</button>
-        <span class="timecode" id="timecode">00:00.0 / 00:30.0</span>
+        <span class="timecode" id="timecode">00:00.0 / 00:00.0</span>
       </div>
     </div>
+
+    <!-- Video Scrub Bar -->
+    <input type="range" id="videoScrub" min="0" max="100" value="0" step="0.1" style="width: 100%; cursor: pointer;">
 
     <!-- Feature Toolbar -->
     <div class="toolbar">
@@ -53,13 +62,13 @@
 
     <!-- Panels -->
     <div id="panel-timeline" class="panel tool-panel">
-      <h2>Multi-Layer Timeline 🎬</h2>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2>Multi-Layer Timeline 🎬</h2>
+        <button id="add-video-btn" style="padding: 6px 14px; font-size: 13px;">+ Video</button>
+      </div>
       <p>Tumpuk video, gambar, teks, stiker, dan audio tanpa batas.</p>
-      <div class="timeline-track">
-        <div class="track-item"><span>📹 Main 4K Footage (00:00 - 00:15)</span><span>100%</span></div>
-        <div class="track-item broll"><span>🟩 Green Screen Actor (00:05 - 00:15)</span><span>Chroma On</span></div>
-        <div class="track-item audio"><span>🎵 Cinematic BGM (00:00 - 00:30)</span><span>Ducking Active</span></div>
-        <div class="track-item text"><span>💬 Cyberpunk Title Overlay</span><span>Keyframed</span></div>
+      <div class="timeline-track" id="timeline-tracks">
+        <div class="track-item" id="empty-track-msg"><span>Belum ada footage - klik + Video</span><span>00:00</span></div>
       </div>
     </div>
 
@@ -114,14 +123,11 @@
     </div>
   </div>
 
-  <!-- Service Worker Registration & App Script -->
+  <!-- Service Worker & App Logic -->
   <script>
-    // Register Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-          .then(reg => console.log('ServiceWorker registered:', reg.scope))
-          .catch(err => console.error('ServiceWorker registration failed:', err));
+        navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW registration failed:', err));
       });
     }
 
@@ -133,7 +139,6 @@
       document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
       themeToggle.textContent = isDark ? '🌙 Mode Gelap' : '☀️ Mode Terang';
     });
-    // Default dark theme
     document.documentElement.setAttribute('data-theme', 'dark');
 
     // Tabs switching
@@ -147,6 +152,93 @@
         document.getElementById(tab.dataset.target).style.display = 'block';
       });
     });
+
+    // Video Upload & Preview Handling
+    const videoFileInput = document.getElementById('videoFileInput');
+    const addVideoBtn = document.getElementById('add-video-btn');
+    const previewVideo = document.getElementById('previewVideo');
+    const placeholderPreview = document.getElementById('placeholder-preview');
+    const timelineTracks = document.getElementById('timeline-tracks');
+    const playBtn = document.getElementById('play-btn');
+    const videoScrub = document.getElementById('videoScrub');
+    const timecode = document.getElementById('timecode');
+
+    addVideoBtn.addEventListener('click', () => {
+      videoFileInput.click();
+    });
+
+    videoFileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const videoURL = URL.createObjectURL(file);
+      previewVideo.src = videoURL;
+      previewVideo.style.display = 'block';
+      placeholderPreview.style.display = 'none';
+
+      previewVideo.onloadedmetadata = () => {
+        videoScrub.max = previewVideo.duration;
+        videoScrub.value = 0;
+        updateTimecode(0, previewVideo.duration);
+
+        // Update timeline track
+        timelineTracks.innerHTML = `
+          <div class="track-item">
+            <span>📹 ${file.name}</span>
+            <span>${formatTime(previewVideo.duration)}</span>
+          </div>
+          <div class="track-item audio">
+            <span>🎵 Audio Track (Sync)</span>
+            <span>Active</span>
+          </div>
+        `;
+      };
+
+      previewVideo.play();
+      playBtn.textContent = '⏸️ Pause';
+    });
+
+    // Play/Pause Control
+    playBtn.addEventListener('click', () => {
+      if (!previewVideo.src) {
+        alert('Silakan tambahkan video terlebih dahulu via tombol "+ Video" di timeline.');
+        return;
+      }
+      if (previewVideo.paused) {
+        previewVideo.play();
+        playBtn.textContent = '⏸️ Pause';
+      } else {
+        previewVideo.pause();
+        playBtn.textContent = '▶️ Play';
+      }
+    });
+
+    // Time update & scrub sync
+    previewVideo.addEventListener('timeupdate', () => {
+      if (!isNaN(previewVideo.duration)) {
+        videoScrub.value = previewVideo.currentTime;
+        updateTimecode(previewVideo.currentTime, previewVideo.duration);
+      }
+    });
+
+    videoScrub.addEventListener('input', (e) => {
+      if (!isNaN(previewVideo.duration)) {
+        previewVideo.currentTime = e.target.value;
+        updateTimecode(previewVideo.currentTime, previewVideo.duration);
+      }
+    });
+
+    function updateTimecode(current, duration) {
+      timecode.textContent = `${formatTime(current)} / ${formatTime(duration)}`;
+    }
+
+    function formatTime(secs) {
+      if (isNaN(secs)) return "00:00.0";
+      const m = Math.floor(secs / 60).toString().padStart(2, '0');
+      const s = Math.floor(secs % 60).toString().padStart(2, '0');
+      const ms = Math.floor((secs % 1) * 10);
+      return `${m}:${s}.${ms}`;
+    }
 
     // AI Remover simulation
     document.getElementById('ai-run-btn').addEventListener('click', () => {
@@ -185,14 +277,6 @@
 
     closeModal.addEventListener('click', () => {
       exportModal.style.display = 'none';
-    });
-
-    // Play simulation
-    let isPlaying = false;
-    const playBtn = document.getElementById('play-btn');
-    playBtn.addEventListener('click', () => {
-      isPlaying = !isPlaying;
-      playBtn.textContent = isPlaying ? '⏸️ Pause' : '▶️ Play';
     });
   </script>
 </body>
