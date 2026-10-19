@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CineMaster Pro - Multi-Layer Video Editor PWA</title>
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+
+  <!-- Flash / Splash Screen -->
+  <div id="splash-screen">
+    <div class="splash-logo">🎬</div>
+    <div class="splash-title">CineMaster Pro</div>
+    <div class="splash-sub">Professional Multi-Layer Video Studio</div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="logo-area">
+      <span>🎬</span>
+      <span>CineMaster Pro</span>
+    </div>
+    <div class="header-actions">
+      <button class="secondary" id="theme-toggle">🌙 Mode Gelap</button>
+      <button id="export-btn">📽️ Export 4K 60FPS</button>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main>
+    <!-- Preview Canvas -->
+    <div class="preview-container">
+      <div style="font-size: 48px;">🎞️</div>
+      <div class="preview-text">Preview Player • 4K 60FPS Studio</div>
+      <div class="player-controls">
+        <button id="play-btn" class="secondary">▶️ Play</button>
+        <span class="timecode" id="timecode">00:00.0 / 00:30.0</span>
+      </div>
+    </div>
+
+    <!-- Feature Toolbar -->
+    <div class="toolbar">
+      <button class="tool-tab active" data-target="panel-timeline">🎬 Multi-Layer Timeline</button>
+      <button class="tool-tab" data-target="panel-chroma">🟩 Chroma Key</button>
+      <button class="tool-tab" data-target="panel-keyframe">⚡ Keyframe Animation</button>
+      <button class="tool-tab" data-target="panel-speed">🚀 Speed Control</button>
+      <button class="tool-tab" data-target="panel-ai">✨ Magic Remover AI</button>
+      <button class="tool-tab" data-target="panel-assets">🛍️ Asset Store</button>
+      <button class="tool-tab" data-target="panel-audio">🎧 EQ & Ducking</button>
+    </div>
+
+    <!-- Panels -->
+    <div id="panel-timeline" class="panel tool-panel">
+      <h2>Multi-Layer Timeline 🎬</h2>
+      <p>Tumpuk video, gambar, teks, stiker, dan audio tanpa batas.</p>
+      <div class="timeline-track">
+        <div class="track-item"><span>📹 Main 4K Footage (00:00 - 00:15)</span><span>100%</span></div>
+        <div class="track-item broll"><span>🟩 Green Screen Actor (00:05 - 00:15)</span><span>Chroma On</span></div>
+        <div class="track-item audio"><span>🎵 Cinematic BGM (00:00 - 00:30)</span><span>Ducking Active</span></div>
+        <div class="track-item text"><span>💬 Cyberpunk Title Overlay</span><span>Keyframed</span></div>
+      </div>
+    </div>
+
+    <div id="panel-chroma" class="panel tool-panel" style="display:none;">
+      <h2>Chroma Key (Green Screen) 🟩</h2>
+      <p>Hilangkan background hijau/biru dengan presisi tinggi.</p>
+      <label>Tolerance: <input type="range" min="10" max="90" value="35" style="width:100%; margin-top:8px;"></label>
+    </div>
+
+    <div id="panel-keyframe" class="panel tool-panel" style="display:none;">
+      <h2>Keyframe Animation ⚡</h2>
+      <p>Gerakkan, zoom, dan ubah transparansi objek secara smooth di detik tertentu.</p>
+      <button>+ Tambah Keyframe di 00:05</button>
+    </div>
+
+    <div id="panel-speed" class="panel tool-panel" style="display:none;">
+      <h2>Speed Control (Time Warp) 🚀</h2>
+      <p>Atur kecepatan video dari slow-motion dramatis sampai hyper-lapse.</p>
+      <label>Speed Multiplier: <input type="range" min="0.1" max="10" step="0.1" value="1" style="width:100%; margin-top:8px;"></label>
+    </div>
+
+    <div id="panel-ai" class="panel tool-panel" style="display:none;">
+      <h2>Magic Remover (AI Background Removal) ✨</h2>
+      <p>Hapus latar belakang secara instan tanpa perlu green screen.</p>
+      <input type="text" placeholder="Deskripsikan objek yang ingin dihapus..." style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--border-color); background:var(--bg-color); color:var(--text-color); margin-bottom:12px;">
+      <button id="ai-run-btn">Jalankan AI Neural Remover</button>
+      <div id="ai-status" style="margin-top:12px; font-weight:bold; color:var(--accent-color);"></div>
+    </div>
+
+    <div id="panel-assets" class="panel tool-panel" style="display:none;">
+      <h2>Asset Store Mewah 🛍️</h2>
+      <p>Ribuan efek transisi, musik bebas hak cipta, dan font aesthetic siap pakai.</p>
+      <div class="track-item"><span>⚡ Neon Glitch Transition (Pro)</span><button style="padding:4px 10px;">Download</button></div>
+      <div class="track-item"><span>🎵 Lo-Fi HipHop Beat (Free)</span><button style="padding:4px 10px;">Applied</button></div>
+    </div>
+
+    <div id="panel-audio" class="panel tool-panel" style="display:none;">
+      <h2>EQ & Audio Ducking 🎧</h2>
+      <p>Pengatur suara pro. Audio latar otomatis mengecil saat ada suara orang ngomong.</p>
+      <label><input type="checkbox" checked> Aktifkan Auto Audio Ducking (-25dB)</label>
+    </div>
+  </main>
+
+  <!-- Export Modal -->
+  <div class="modal-overlay" id="export-modal">
+    <div class="modal">
+      <h3>📽️ Export 4K 60FPS Video</h3>
+      <p>Sedang merender frame video & Dolby Atmos audio...</p>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div id="export-status" style="text-align:center; font-weight:bold; margin-bottom:16px;">0%</div>
+      <button id="close-modal" style="width:100%; display:none;">Selesai / Bagikan</button>
+    </div>
+  </div>
+
+  <!-- Service Worker Registration & App Script -->
+  <script>
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('ServiceWorker registered:', reg.scope))
+          .catch(err => console.error('ServiceWorker registration failed:', err));
+      });
+    }
+
+    // Theme Toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    let isDark = true;
+    themeToggle.addEventListener('click', () => {
+      isDark = !isDark;
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+      themeToggle.textContent = isDark ? '🌙 Mode Gelap' : '☀️ Mode Terang';
+    });
+    // Default dark theme
+    document.documentElement.setAttribute('data-theme', 'dark');
+
+    // Tabs switching
+    const tabs = document.querySelectorAll('.tool-tab');
+    const panels = document.querySelectorAll('.tool-panel');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.style.display = 'none');
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.target).style.display = 'block';
+      });
+    });
+
+    // AI Remover simulation
+    document.getElementById('ai-run-btn').addEventListener('click', () => {
+      const status = document.getElementById('ai-status');
+      status.textContent = '🤖 Gemini AI neural engine sedang memproses frame...';
+      setTimeout(() => {
+        status.textContent = '✨ Background berhasil dihapus dengan presisi 99.8%!';
+      }, 1500);
+    });
+
+    // Export 4K simulation
+    const exportBtn = document.getElementById('export-btn');
+    const exportModal = document.getElementById('export-modal');
+    const progressFill = document.getElementById('progress-fill');
+    const exportStatus = document.getElementById('export-status');
+    const closeModal = document.getElementById('close-modal');
+
+    exportBtn.addEventListener('click', () => {
+      exportModal.style.display = 'flex';
+      let progress = 0;
+      progressFill.style.width = '0%';
+      exportStatus.textContent = '0%';
+      closeModal.style.display = 'none';
+
+      const interval = setInterval(() => {
+        progress += 2;
+        progressFill.style.width = progress + '%';
+        exportStatus.textContent = progress + '%';
+        if (progress >= 100) {
+          clearInterval(interval);
+          exportStatus.textContent = '✅ Export 4K 60FPS Selesai!';
+          closeModal.style.display = 'block';
+        }
+      }, 40);
+    });
+
+    closeModal.addEventListener('click', () => {
+      exportModal.style.display = 'none';
+    });
+
+    // Play simulation
+    let isPlaying = false;
+    const playBtn = document.getElementById('play-btn');
+    playBtn.addEventListener('click', () => {
+      isPlaying = !isPlaying;
+      playBtn.textContent = isPlaying ? '⏸️ Pause' : '▶️ Play';
+    });
+  </script>
+</body>
+</html>
